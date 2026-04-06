@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNINDEX Premium Dashboard | Phân tích Thị trường Việt Nam</title>
+    <meta name="description" content="Dashboard phân tích thị trường chứng khoán Việt Nam: độ rộng thị trường, diễn biến ngành, bộ lọc cổ phiếu tiềm năng dựa trên RSI, Stoch, MA Cross.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <header class="topbar" id="topbar">
+        <div class="logo">
+            <span class="gradient-text">VNSTOCK</span> Dashboard
+        </div>
+        <div class="header-right">
+            <div id="total-stocks-badge" class="total-badge hidden">
+                <span class="dot-pulse"></span>
+                <span id="header-total">0 mã HOSE</span>
+            </div>
+            <div class="actions">
+                <button id="btn-sync" class="btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Sync Historical Data
+                </button>
+                <button id="btn-refresh" class="btn-secondary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 01-8 8m0-16a8 8 0 018 8"></path></svg>
+                    Làm mới
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sync Progress Banner -->
+    <div id="sync-progress" class="sync-banner hidden">
+        <div class="spinner"></div>
+        <div class="sync-info">
+            <span id="sync-message" class="sync-msg">Đang đồng bộ...</span>
+        </div>
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <span id="progress-pct" class="progress-pct">0%</span>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+
+        <!-- KPI Row: 3 cards -->
+        <section class="kpi-group" id="kpi-section">
+
+            <!-- Card 1: Độ rộng thị trường -->
+            <div class="kpi-item" id="card-breadth">
+                <div class="kpi-title">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Độ rộng thị trường (HOSE)
+                </div>
+                <div class="market-breadth">
+                    <div class="breadth-item up">
+                        <span class="label">Tăng giá</span>
+                        <span id="kpi-gainers" class="value text-green">—</span>
+                    </div>
+                    <div class="breadth-divider"></div>
+                    <div class="breadth-item ref">
+                        <span class="label">Tham chiếu</span>
+                        <span id="kpi-unchanged" class="value text-yellow">—</span>
+                    </div>
+                    <div class="breadth-divider"></div>
+                    <div class="breadth-item down">
+                        <span class="label">Giảm giá</span>
+                        <span id="kpi-losers" class="value text-red">—</span>
+                    </div>
+                </div>
+                <div class="breadth-bar-wrap">
+                    <div id="breadth-bar-green" class="breadth-seg seg-green" style="width:33%"></div>
+                    <div id="breadth-bar-yellow" class="breadth-seg seg-yellow" style="width:33%"></div>
+                    <div id="breadth-bar-red" class="breadth-seg seg-red" style="width:34%"></div>
+                </div>
+            </div>
+
+            <!-- Card 2: Tín hiệu thị trường (Top Tăng / Giảm) -->
+            <div class="kpi-item" id="card-topmovers">
+                <div class="kpi-title">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    Top Biến động Phiên
+                </div>
+                <div class="top-movers-split">
+                    <div class="mover-col">
+                        <div class="mover-header text-green">▲ Top Tăng</div>
+                        <ul id="top-gainers-list" class="stock-list mini"></ul>
+                    </div>
+                    <div class="mover-divider"></div>
+                    <div class="mover-col">
+                        <div class="mover-header text-red">▼ Top Giảm</div>
+                        <ul id="top-losers-list" class="stock-list mini"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Thống kê tổng hợp -->
+            <div class="kpi-item" id="card-stats">
+                <div class="kpi-title">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Tổng kết thị trường
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Tổng mã HOSE</span>
+                        <span id="stat-total" class="stat-value">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tỉ lệ Tăng</span>
+                        <span id="stat-gain-pct" class="stat-value text-green">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tỉ lệ Giảm</span>
+                        <span id="stat-loss-pct" class="stat-value text-red">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tỉ lệ Tham chiếu</span>
+                        <span id="stat-unch-pct" class="stat-value text-yellow">—</span>
+                    </div>
+                </div>
+                <div class="data-note">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Dữ liệu EOD từ lịch sử giá, làm mới sau mỗi lần Sync
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Heatmap Section -->
+        <section class="heatmap-section liquid-panel" id="card-heatmap">
+            <div class="heatmap-toolbar">
+                <h3>🗺️ Heatmap Thị Trường</h3>
+                <div class="toolbar-controls">
+                    <!-- Metric -->
+                    <div class="switch-group" id="hm-metric-group">
+                        <button class="sw active" data-metric="price">Giá</button>
+                        <button class="sw"        data-metric="volume">Volume</button>
+                        <button class="sw"        data-metric="net_volume">Net Vol</button>
+                    </div>
+                    <div class="toolbar-separator"></div>
+                    <!-- View -->
+                    <div class="switch-group" id="hm-view-group">
+                        <button class="sw active" data-view="stock">Cổ phiếu</button>
+                        <button class="sw"        data-view="industry">Ngành</button>
+                    </div>
+                    <div class="toolbar-separator"></div>
+                    <!-- Period -->
+                    <div class="switch-group" id="hm-period-group">
+                        <button class="sw active" data-period="1d">1D</button>
+                        <button class="sw"        data-period="1w">1W</button>
+                        <button class="sw"        data-period="1m">1M</button>
+                        <button class="sw"        data-period="1q">1Q</button>
+                        <button class="sw"        data-period="1y">1Y</button>
+                    </div>
+                </div>
+            </div>
+            <div id="heatmap-container">
+                <div class="heatmap-empty" id="heatmap-empty">
+                    <div class="icon">🗺️</div>
+                    <span>Chưa có dữ liệu. Vui lòng bấm <strong>Sync Historical Data</strong> để bắt đầu.</span>
+                </div>
+                <svg id="heatmap-svg" style="display:none"></svg>
+            </div>
+            <div class="heatmap-legend">
+                <span class="legend-label">Giảm mạnh</span>
+                <div>
+                    <div class="legend-bar"></div>
+                    <div class="legend-ticks"><span>-5%</span><span>0%</span><span>+5%</span></div>
+                </div>
+                <span class="legend-label">Tăng mạnh</span>
+            </div>
+        </section>
+
+        <!-- Tooltip for heatmap -->
+        <div class="hm-tooltip" id="hm-tooltip" style="display:none">
+            <div class="hm-tt-sym" id="hm-tt-sym"></div>
+            <div class="hm-tt-ind" id="hm-tt-ind"></div>
+            <div class="hm-tt-row"><span class="hm-tt-key">Giá</span><span class="hm-tt-val" id="hm-tt-price"></span></div>
+            <div class="hm-tt-row"><span class="hm-tt-key">% Hôm nay</span><span class="hm-tt-val" id="hm-tt-pct1d"></span></div>
+            <div class="hm-tt-row"><span class="hm-tt-key">Volume</span><span class="hm-tt-val" id="hm-tt-vol"></span></div>
+        </div>
+
+        <!-- Potential Stocks Screener -->
+        <section class="potential-stocks liquid-panel full-width" id="card-screener">
+            <div class="header-split">
+                <div>
+                    <h3>Bộ Lọc Cổ Phiếu Tiềm Năng</h3>
+                    <p class="desc">
+                        Tiêu chí: <strong>RSI ≤ 35 &amp; StochK ≤ 20</strong> (Quá bán) hoặc <strong>Đang Tăng Giá</strong> (Giá &gt; MA100 &amp; MA50 &gt; MA100). 
+                        P/E: 0–20 · P/B: 0–3 · Vol &gt; 100,000 cp/phiên (2W avg)
+                    </p>
+                </div>
+                <span class="badge" id="last-update">Chưa cập nhật</span>
+            </div>
+
+            <div class="table-responsive">
+                <table id="potential-table">
+                    <thead>
+                        <tr>
+                            <th>Mã CK</th>
+                            <th>Ngành</th>
+                            <th>Giá (Close)</th>
+                            <th>+/- Phiên</th>
+                            <th>RSI(14)</th>
+                            <th>Stoch K</th>
+                            <th>MA50 / MA100</th>
+                            <th>Tín hiệu</th>
+                            <th>P/E</th>
+                            <th>P/B</th>
+                            <th>Vol TB 2W</th>
+                        </tr>
+                    </thead>
+                    <tbody id="potential-tbody">
+                        <tr><td colspan="11" class="text-center empty-state">
+                            <div class="empty-icon">📊</div>
+                            Chưa có dữ liệu. Vui lòng bấm <strong>Sync Historical Data</strong> để bắt đầu.
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

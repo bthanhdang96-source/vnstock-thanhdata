@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.env
+cache_hose_data.json
+.vscode/
