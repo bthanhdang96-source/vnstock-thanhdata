@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import datetime
 import pandas as pd
 from fastapi import FastAPI, BackgroundTasks, Query
 from fastapi.staticfiles import StaticFiles
@@ -138,11 +139,54 @@ def _sum_net_vol(df, n_periods):
 def safe_fetch_quote_history(symbol):
     try:
         q = Quote(source='KBS', symbol=symbol)
-        df = q.history(length=HOSE_HISTORY_LENGTH, interval="1D", get_all=False)
-        if df.empty or len(df) < 50:
+        history_dir = "data/history"
+        os.makedirs(history_dir, exist_ok=True)
+        cache_file = os.path.join(history_dir, f"{symbol}.csv")
+        
+        df = pd.DataFrame()
+        need_full_fetch = True
+        
+        if os.path.exists(cache_file):
+            try:
+                old_df = pd.read_csv(cache_file)
+                if not old_df.empty and 'time' in old_df.columns:
+                    old_df['time'] = pd.to_datetime(old_df['time'])
+                    last_date = old_df['time'].max()
+                    today = datetime.datetime.now()
+                    start_str = last_date.strftime('%Y-%m-%d')
+                    end_str = today.strftime('%Y-%m-%d')
+                    
+                    if start_str != end_str:
+                        new_df = q.history(start=start_str, end=end_str, interval="1D", get_all=False)
+                        if new_df is not None and not new_df.empty and 'time' in new_df.columns:
+                            new_df['time'] = pd.to_datetime(new_df['time'])
+                            df = pd.concat([old_df, new_df], ignore_index=True)
+                        else:
+                            df = old_df
+                    else:
+                        df = old_df
+                        
+                    need_full_fetch = False
+            except Exception as e:
+                print(f"Lỗi đọc cache csv cho {symbol}: {e}")
+                
+        if need_full_fetch:
+            df = q.history(length=HOSE_HISTORY_LENGTH, interval="1D", get_all=False)
+
+        if df is None or df.empty or len(df) < 50:
             return None
 
+        # Clean duplicates mapping over appended segments
+        df['time'] = pd.to_datetime(df['time'])
+        df = df.drop_duplicates(subset=['time'], keep='last')
         df = df.sort_values(by='time').reset_index(drop=True)
+        
+        # Keep strictly HOSE_HISTORY_LENGTH
+        df = df.tail(HOSE_HISTORY_LENGTH).reset_index(drop=True)
+        
+        # Save snapshot 
+        df.to_csv(cache_file, index=False)
+
         for col in ['close', 'high', 'low', 'open', 'volume']:
             df[col] = pd.to_numeric(df.get(col, 0), errors='coerce').fillna(0)
 
