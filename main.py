@@ -542,12 +542,13 @@ def get_potential_stocks():
         uptrend = row.get("is_uptrend", False)
         pe      = row.get("pe", 0)
         pb      = row.get("pb", 0)
-        vol     = row.get("avg_match_volume_2w", 0)
+        vol     = row.get("volume", 0)
+        avg_vol_2w = row.get("avg_match_volume_2w", 0)
         stoch_k = row.get("stoch_k", 100)
 
-        is_oversold        = rsi <= 35 and stoch_k <= 20
+        is_oversold         = rsi <= 35 and stoch_k <= 20
         is_good_fundamental = 0 < pe < 20 and 0 < pb < 3
-        has_volume         = vol > 100000
+        has_volume          = avg_vol_2w > 0 and vol > avg_vol_2w
 
         if (is_oversold or uptrend) and is_good_fundamental and has_volume:
             potentials.append(row)
